@@ -10,7 +10,17 @@
 <input type="file" id="fileInput" />
 <button onclick="uploadFile()">VALIDASI</button>
 
-<table border="1" id="resultTable"></table>
+<br><br>
+
+<table border="1" id="resultTable">
+    <tr>
+        <th>Nama</th>
+        <th>Rekening</th>
+        <th>Bank</th>
+        <th>Nama Bank</th>
+        <th>Status</th>
+    </tr>
+</table>
 
 <script>
 async function uploadFile() {
@@ -33,7 +43,29 @@ async function uploadFile() {
 
     const data = await res.json();
 
-    console.log(data);
+    let table = `
+        <tr>
+            <th>Nama</th>
+            <th>Rekening</th>
+            <th>Bank</th>
+            <th>Nama Bank</th>
+            <th>Status</th>
+        </tr>
+    `;
+
+    data.forEach(row => {
+        table += `
+            <tr>
+                <td>${row.nama}</td>
+                <td>${row.rekening}</td>
+                <td>${row.bank}</td>
+                <td>${row.nama_bank}</td>
+                <td>${row.status}</td>
+            </tr>
+        `;
+    });
+
+    document.getElementById("resultTable").innerHTML = table;
 }
 </script>
 
