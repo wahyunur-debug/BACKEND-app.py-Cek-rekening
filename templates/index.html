@@ -4,52 +4,104 @@
     <title>Payroll Validator</title>
     <style>
         body {
-            font-family: Arial;
+            font-family: 'Segoe UI', Arial;
             background: #f4f6f9;
-            padding: 30px;
+            padding: 40px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
         }
 
         .card {
             background: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .upload-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
         button {
-            padding: 10px 15px;
+            padding: 10px 18px;
             background: #007bff;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .summary {
+            font-size: 14px;
+            color: #555;
+            margin-top: 10px;
         }
 
         .result {
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
         .item {
             background: white;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
         }
 
-        .valid { border-left: 5px solid green; }
-        .invalid { border-left: 5px solid red; }
+        .valid {
+            border-left: 5px solid #28a745;
+        }
+
+        .invalid {
+            border-left: 5px solid #dc3545;
+        }
+
+        .name {
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .detail {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
 
-<h2>Payroll Validator</h2>
+<div class="container">
 
-<div class="card">
-    <input type="file" id="fileInput">
-    <button onclick="uploadFile()">VALIDASI</button>
+    <h2>🚀 Payroll Validator</h2>
+
+    <div class="card">
+        <div class="upload-box">
+            <input type="file" id="fileInput">
+            <button onclick="uploadFile()">VALIDASI</button>
+        </div>
+
+        <div class="summary" id="summary"></div>
+    </div>
+
+    <div class="result" id="result"></div>
+
 </div>
-
-<div id="summary"></div>
-<div class="result" id="result"></div>
 
 <script>
 async function uploadFile() {
@@ -83,19 +135,24 @@ async function uploadFile() {
 
             html += `
                 <div class="item ${row.status === "MATCH" ? 'valid' : 'invalid'}">
-                    <b>${row.nama}</b> - ${row.bank} - ${row.rekening}
-                    <br>Status: ${row.status}
+                    <div class="name">${row.nama}</div>
+                    <div class="detail">
+                        ${row.bank} • ${row.rekening}
+                        <br>Status: ${row.status}
+                    </div>
                 </div>
             `;
         });
 
         document.getElementById("summary").innerHTML =
-            `Total: ${total} | Valid: ${valid} | Invalid: ${invalid}`;
+            `Total: <b>${total}</b> &nbsp; | &nbsp; 
+             Valid: <b>${valid}</b> &nbsp; | &nbsp; 
+             Invalid: <b>${invalid}</b>`;
 
         document.getElementById("result").innerHTML = html;
 
     } catch (err) {
-        alert("ERROR: " + err);
+        alert("Error: " + err);
         console.log(err);
     }
 }
