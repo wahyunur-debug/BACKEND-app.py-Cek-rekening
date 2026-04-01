@@ -1,94 +1,154 @@
-from flask import Flask, render_template, request, jsonify
-import requests
-import pandas as pd
-import os
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payroll Validator</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f9;
+            padding: 30px;
+        }
 
-app = Flask(__name__)
+        h2 {
+            color: #333;
+        }
 
-API_KEY = os.getenv("xnd_development_WMNpPUHmxN8E79hXgRTXhfqDMKd28jchhnJ0iD2X8kfRkAwZOFQnlV2ZayEWep")
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
 
+        button {
+            padding: 10px 15px;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
 
-def cek_rekening(bank_code, account_number):
-    url = "https://api.xendit.co/bank_accounts"
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
 
-    try:
-        response = requests.get(
-            url,
-            auth=(API_KEY, ""),
-            params={
-                "bank_code": bank_code,
-                "account_number": account_number
-            },
-            timeout=10
-        )
+        .box {
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            flex: 1;
+            text-align: center;
+        }
 
-        if response.status_code != 200:
-            return {}
+        .total { background: #6c757d; }
+        .valid { background: #28a745; }
+        .invalid { background: #dc3545; }
 
-        return response.json()
+        .list {
+            margin-top: 20px;
+        }
 
-    except Exception as e:
-        print("ERROR API:", e)
-        return {}
+        .item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
 
+        .match { border-left: 5px solid green; }
+        .invalid-row { border-left: 5px solid red; }
+    </style>
+</head>
+<body>
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+<h2>🚀 Payroll Validator</h2>
 
+<div class="card">
+    <input type="file" id="fileInput" />
+    <button onclick="uploadFile()">VALIDASI</button>
+    <button onclick="downloadExcel()">⬇️ Download</button>
+</div>
 
-@app.route("/upload", methods=["POST"])
-def upload():
-    try:
-        if "file" not in request.files:
-            return jsonify({"error": "File tidak ditemukan"}), 400
+<div class="stats">
+    <div class="box total">Total: <span id="total">0</span></div>
+    <div class="box valid">Valid: <span id="valid">0</span></div>
+    <div class="box invalid">Invalid: <span id="invalid">0</span></div>
+</div>
 
-        file = request.files["file"]
+<div class="list" id="list"></div>
 
-        df = pd.read_excel(file)
+<script>
+let globalData = [];
 
-        # normalize kolom
-        df.columns = [col.lower() for col in df.columns]
+async function uploadFile() {
+    const fileInput = document.getElementById("fileInput").files[0];
 
-        required_cols = ["nama", "rekening", "bank"]
-        for col in required_cols:
-            if col not in df.columns:
-                return jsonify({"error": f"Kolom {col} tidak ada"}), 400
+    if (!fileInput) {
+        alert("Pilih file dulu!");
+        return;
+    }
 
-        results = []
+    const formData = new FormData();
+    formData.append("file", fileInput);
 
-        for _, row in df.iterrows():
-            nama = str(row["nama"]).strip()
-            rekening = str(row["rekening"]).strip()
-            bank = str(row["bank"]).strip().upper()
+    const res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+    });
 
-            res = cek_rekening(bank, rekening)
+    const data = await res.json();
+    globalData = data;
 
-            nama_bank = res.get("account_holder_name", "")
+    let total = data.length;
+    let valid = 0;
+    let invalid = 0;
 
-            if not nama_bank:
-                status = "INVALID"
-            elif nama.upper() == nama_bank.upper():
-                status = "MATCH"
-            elif nama.upper() in nama_bank.upper():
-                status = "MIRIP"
-            else:
-                status = "SALAH"
+    let listHTML = "";
 
-            results.append({
-                "nama": nama,
-                "rekening": rekening,
-                "bank": bank,
-                "nama_bank": nama_bank,
-                "status": status
-            })
+    data.forEach(row => {
+        if (row.status === "MATCH") valid++;
+        else invalid++;
 
-        return jsonify(results)
+        listHTML += `
+            <div class="item ${row.status === "MATCH" ? 'match' : 'invalid-row'}">
+                <b>${row.nama}</b> - ${row.bank} - ${row.rekening}
+                <br>Status: ${row.status}
+            </div>
+        `;
+    });
 
-    except Exception as e:
-        print("ERROR:", e)
-        return jsonify({"error": "Terjadi kesalahan saat proses file"}), 500
+    document.getElementById("total").innerText = total;
+    document.getElementById("valid").innerText = valid;
+    document.getElementById("invalid").innerText = invalid;
+    document.getElementById("list").innerHTML = listHTML;
+}
 
+function downloadExcel() {
+    if (globalData.length === 0) {
+        alert("Belum ada data!");
+        return;
+    }
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    let csv = "Nama,Rekening,Bank,Nama Bank,Status\n";
+
+    globalData.forEach(row => {
+        csv += `${row.nama},${row.rekening},${row.bank},${row.nama_bank},${row.status}\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "hasil_validasi.csv";
+    a.click();
+}
+</script>
+
+</body>
+</html>
