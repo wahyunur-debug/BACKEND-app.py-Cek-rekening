@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__)
 
-API_KEY = os.getenv("XENDIT_API_KEY")
+API_KEY = os.getenv("xnd_development_WMNpPUHmxN8E79hXgRTXhfqDMKd28jchhnJ0iD2X8kfRkAwZOFQnlV2ZayEWep")
 
 
 def cek_rekening(bank_code, account_number):
