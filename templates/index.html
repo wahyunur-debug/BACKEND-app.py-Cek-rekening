@@ -2,70 +2,102 @@
 <html>
 <head>
     <title>Payroll Validator</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f6f9;
+            padding: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+
+        button {
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .result {
+            margin-top: 20px;
+        }
+
+        .item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .valid { border-left: 5px solid green; }
+        .invalid { border-left: 5px solid red; }
+    </style>
 </head>
 <body>
 
-<h2>Upload Excel Payroll</h2>
+<h2>Payroll Validator</h2>
 
-<input type="file" id="fileInput" />
-<button onclick="uploadFile()">VALIDASI</button>
+<div class="card">
+    <input type="file" id="fileInput">
+    <button onclick="uploadFile()">VALIDASI</button>
+</div>
 
-<br><br>
-
-<table border="1" id="resultTable">
-    <tr>
-        <th>Nama</th>
-        <th>Rekening</th>
-        <th>Bank</th>
-        <th>Nama Bank</th>
-        <th>Status</th>
-    </tr>
-</table>
+<div id="summary"></div>
+<div class="result" id="result"></div>
 
 <script>
 async function uploadFile() {
-    alert("KEKLIK");
+    try {
+        const fileInput = document.getElementById("fileInput").files[0];
 
-    const fileInput = document.getElementById("fileInput").files[0];
+        if (!fileInput) {
+            alert("Pilih file dulu!");
+            return;
+        }
 
-    if (!fileInput) {
-        alert("Pilih file dulu!");
-        return;
+        const formData = new FormData();
+        formData.append("file", fileInput);
+
+        const res = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        let total = data.length;
+        let valid = 0;
+        let invalid = 0;
+
+        let html = "";
+
+        data.forEach(row => {
+            if (row.status === "MATCH") valid++;
+            else invalid++;
+
+            html += `
+                <div class="item ${row.status === "MATCH" ? 'valid' : 'invalid'}">
+                    <b>${row.nama}</b> - ${row.bank} - ${row.rekening}
+                    <br>Status: ${row.status}
+                </div>
+            `;
+        });
+
+        document.getElementById("summary").innerHTML =
+            `Total: ${total} | Valid: ${valid} | Invalid: ${invalid}`;
+
+        document.getElementById("result").innerHTML = html;
+
+    } catch (err) {
+        alert("ERROR: " + err);
+        console.log(err);
     }
-
-    const formData = new FormData();
-    formData.append("file", fileInput);
-
-    const res = await fetch("/upload", {
-        method: "POST",
-        body: formData
-    });
-
-    const data = await res.json();
-
-    let table = `
-        <tr>
-            <th>Nama</th>
-            <th>Rekening</th>
-            <th>Bank</th>
-            <th>Nama Bank</th>
-            <th>Status</th>
-        </tr>
-    `;
-
-    data.forEach(row => {
-        table += `
-            <tr>
-                <td>${row.nama}</td>
-                <td>${row.rekening}</td>
-                <td>${row.bank}</td>
-                <td>${row.nama_bank}</td>
-                <td>${row.status}</td>
-            </tr>
-        `;
-    });
-
-    document.getElementById("resultTable").innerHTML = table;
 }
 </script>
 
