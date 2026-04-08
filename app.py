@@ -10,7 +10,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # ✅ FIX ENV
-API_KEY = os.getenv("xnd_development_WMNpPUHmxN8E79hXgRTXhfqDMKd28jchhnJ0iD2X8kfRkAwZOFQnlV2ZayEWep")
+API_KEY = os.getenv("XENDIT_API_KEY")
 
 def validasi_format_rekening(rekening):
     if not rekening.isdigit():
