@@ -5,12 +5,15 @@ import os
 import time
 from dotenv import load_dotenv
 
+# ✅ Optional (buat local aja, di Railway aman walau ga ada)
 load_dotenv()
 
 app = Flask(__name__)
 
-# ✅ FIX ENV
-API_KEY = os.getenv("XENDIT_API_KEY")
+# ✅ Ambil dari Railway (utama) + fallback .env
+API_KEY = os.environ.get("XENDIT_API_KEY")
+
+print("API KEY TERBACA:", "ADA" if API_KEY else "TIDAK ADA")
 
 def validasi_format_rekening(rekening):
     if not rekening.isdigit():
@@ -35,8 +38,10 @@ def cek_rekening(bank_code, account_number):
             timeout=10
         )
 
+        print("STATUS:", response.status_code)
+        print("RESPONSE:", response.text)
+
         if response.status_code != 200:
-            print("ERROR STATUS:", response.status_code, response.text)
             return {}
 
         return response.json()
@@ -52,10 +57,10 @@ def index():
 @app.route("/upload", methods=["POST"])
 def upload():
     try:
-        print("UPLOAD HIT")  # debug
+        print("UPLOAD HIT")
 
         if not API_KEY:
-            return jsonify({"error": "XENDIT_API_KEY belum diset"}), 500
+            return jsonify({"error": "XENDIT_API_KEY belum diset di Railway"}), 500
 
         if "file" not in request.files:
             return jsonify({"error": "File tidak ditemukan"}), 400
@@ -132,5 +137,5 @@ def upload():
 
 
 if __name__ == "__main__":
-    print("APP STARTED")  # debug penting
+    print("APP STARTED")
     app.run(host="0.0.0.0", port=5000)
