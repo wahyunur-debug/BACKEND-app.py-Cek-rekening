@@ -9,6 +9,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# ✅ FIX ENV
 API_KEY = os.getenv("xnd_development_WMNpPUHmxN8E79hXgRTXhfqDMKd28jchhnJ0iD2X8kfRkAwZOFQnlV2ZayEWep")
 
 def validasi_format_rekening(rekening):
@@ -33,9 +34,13 @@ def cek_rekening(bank_code, account_number):
             },
             timeout=10
         )
+
         if response.status_code != 200:
+            print("ERROR STATUS:", response.status_code, response.text)
             return {}
+
         return response.json()
+
     except Exception as e:
         print("ERROR API:", e)
         return {}
@@ -47,35 +52,39 @@ def index():
 @app.route("/upload", methods=["POST"])
 def upload():
     try:
+        print("UPLOAD HIT")  # debug
+
         if not API_KEY:
-            return jsonify({"error": "XENDIT_API_KEY belum diset di file .env"}), 500
+            return jsonify({"error": "XENDIT_API_KEY belum diset"}), 500
 
         if "file" not in request.files:
             return jsonify({"error": "File tidak ditemukan"}), 400
 
         file = request.files["file"]
-        df = pd.read_excel(file)
 
-        # normalize kolom
+        try:
+            df = pd.read_excel(file)
+        except Exception:
+            return jsonify({"error": "File Excel tidak valid"}), 400
+
         df.columns = [col.lower().strip() for col in df.columns]
 
         required_cols = ["nama", "rekening", "bank"]
         for col in required_cols:
             if col not in df.columns:
-                return jsonify({"error": f"Kolom '{col}' tidak ditemukan di Excel"}), 400
+                return jsonify({"error": f"Kolom '{col}' tidak ditemukan"}), 400
 
         results = []
+
         for _, row in df.iterrows():
             nama = str(row["nama"]).strip()
             rekening = str(row["rekening"]).strip()
 
-            # hapus .0 jika rekening terbaca sebagai float
             if rekening.endswith(".0"):
                 rekening = rekening[:-2]
 
             bank = str(row["bank"]).strip().upper()
 
-            # validasi format rekening
             valid, pesan = validasi_format_rekening(rekening)
             if not valid:
                 results.append({
@@ -99,7 +108,7 @@ def upload():
                 keterangan = "Nama sesuai"
             elif nama.upper() in nama_bank.upper():
                 status = "MIRIP"
-                keterangan = "Nama mirip tapi tidak persis sama"
+                keterangan = "Nama mirip"
             else:
                 status = "SALAH"
                 keterangan = f"Nama di bank: {nama_bank}"
@@ -113,14 +122,15 @@ def upload():
                 "keterangan": keterangan
             })
 
-            # delay agar tidak kena rate limit Xendit
             time.sleep(0.3)
 
         return jsonify(results)
 
     except Exception as e:
-        print("ERROR:", e)
-        return jsonify({"error": f"Terjadi kesalahan: {str(e)}"}), 500
+        print("ERROR FATAL:", e)
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    print("APP STARTED")  # debug penting
+    app.run(host="0.0.0.0", port=5000)
